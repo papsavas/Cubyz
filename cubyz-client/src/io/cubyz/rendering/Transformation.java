@@ -5,25 +5,26 @@ import org.joml.Vector3f;
 
 public class Transformation {
 
+	private TransformationProduct transformationProduct;
+
 	private final Matrix4f projectionMatrix;
 
 	private final Matrix4f worldMatrix;
 
-	private final Matrix4f viewMatrix;
 	private final Matrix4f lightViewMatrix;
 
 	private static final Matrix4f modelViewMatrix = new Matrix4f();
 
 	private final Matrix4f orthoMatrix;
 
-	private static final Vector3f xVec = new Vector3f(1, 0, 0); // There is no need to create a new object every time
+	public static final Vector3f xVec = new Vector3f(1, 0, 0); // There is no need to create a new object every time
 																// this is needed.
-	private static final Vector3f yVec = new Vector3f(0, 1, 0);
+	public static final Vector3f yVec = new Vector3f(0, 1, 0);
 
 	public Transformation() {
 		worldMatrix = new Matrix4f();
 		projectionMatrix = new Matrix4f();
-		viewMatrix = new Matrix4f();
+		this.transformationProduct = new TransformationProduct(new Matrix4f());
 		orthoMatrix = new Matrix4f();
 		lightViewMatrix = new Matrix4f();
 	}
@@ -47,22 +48,8 @@ public class Transformation {
 		return orthoMatrix;
 	}
 
-	public Matrix4f getOrtoProjModelMatrix(Spatial gameItem, Matrix4f orthoMatrix) {
-		Vector3f rotation = gameItem.getRotation();
-		Matrix4f modelMatrix = new Matrix4f();
-		modelMatrix.identity()
-			.translate(gameItem.getPosition())
-			.rotateX(-rotation.x)
-			.rotateY(-rotation.y)
-			.rotateZ(-rotation.z)
-			.scale(gameItem.getScale());
-		Matrix4f orthoMatrixCurr = new Matrix4f(orthoMatrix);
-		orthoMatrixCurr.mul(modelMatrix);
-		return orthoMatrixCurr;
-	}
-	
 	public Matrix4f getOrtoProjModelMatrix(Spatial gameItem) {
-		return getOrtoProjModelMatrix(gameItem, orthoMatrix);
+		return gameItem.getOrtoProjModelMatrix(orthoMatrix);
 	}
 	
 	public static Matrix4f getModelMatrix(Vector3f position, Vector3f rotation, Vector3f scale) {
@@ -86,18 +73,11 @@ public class Transformation {
 	}
 	
 	public Matrix4f getViewMatrix(Camera camera) {
-		Vector3f cameraPos = camera.getPosition();
-		Vector3f rotation = camera.getRotation();
-		return getViewMatrix(cameraPos, rotation);
+		return transformationProduct.getViewMatrix(camera);
 	}
 	
 	public Matrix4f getViewMatrix(Vector3f position, Vector3f rotation) {
-		viewMatrix.identity();
-		// First do the rotation so camera rotates over its position
-		viewMatrix.rotate(rotation.x, xVec).rotate(rotation.y, yVec);
-		// Then do the translation
-		viewMatrix.translate(-position.x, -position.y, -position.z);
-		return viewMatrix;
+		return transformationProduct.getViewMatrix(position, rotation);
 	}
 	
 	public Matrix4f getLightViewMatrix(Vector3f position, Vector3f rotation) {

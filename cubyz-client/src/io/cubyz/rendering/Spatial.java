@@ -127,5 +127,15 @@ public class Spatial {
 			.rotateZ(-rotation.z)
 			.scale(scale);
     }
+
+	public Matrix4f getOrtoProjModelMatrix(Matrix4f orthoMatrix) {
+		Vector3f rotation = getRotation();
+		Matrix4f modelMatrix = new Matrix4f();
+		modelMatrix.identity().translate(getPosition()).rotateX(-rotation.x).rotateY(-rotation.y).rotateZ(-rotation.z)
+				.scale(getScale());
+		Matrix4f orthoMatrixCurr = new Matrix4f(orthoMatrix);
+		orthoMatrixCurr.mul(modelMatrix);
+		return orthoMatrixCurr;
+	}
     
 }
