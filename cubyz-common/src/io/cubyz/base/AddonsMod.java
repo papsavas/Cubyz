@@ -209,38 +209,60 @@ public class AddonsMod {
 							line = line.replaceAll("//.*", ""); // Ignore comments with "//".
 							line = line.trim(); // Remove whitespaces before and after the word starts.
 							if(line.length() == 0) continue;
+
 							if(startedStructures) {
+								/*
+								void vegetationRegistry(String literal, class ObjectClass, Array args){
+									String [] arguments = line.substring(literal.length()).trim().split("\\s+");
+									vegetation.add(new ObjectClass(args.flat()))
+								}
+								Hashmap literalArgs = new Hashmap();
+								/*
+								* literaArgs.put('literal', args)
+								*
+							*/
 								// TODO: Proper registry of vegetational and other structures.
 								if(line.startsWith("cubyz:simple_vegetation")) {
 									String [] arguments = line.substring("cubyz:simple_vegetation".length()).trim().split("\\s+");
 									vegetation.add(new SimpleVegetation(CubyzRegistries.BLOCK_REGISTRY.getByID(arguments[0]), Float.parseFloat(arguments[1]), Integer.parseInt(arguments[2]), Integer.parseInt(arguments[3])));
-								} else if(line.startsWith("cubyz:simple_tree")) {
+								}
+								else if(line.startsWith("cubyz:simple_tree")) {
 									String [] arguments = line.substring("cubyz:simple_tree".length()).trim().split("\\s+");
 									vegetation.add(new SimpleTreeModel(CubyzRegistries.BLOCK_REGISTRY.getByID(arguments[0]), CubyzRegistries.BLOCK_REGISTRY.getByID(arguments[1]), CubyzRegistries.BLOCK_REGISTRY.getByID(arguments[2]), Float.parseFloat(arguments[3]), Integer.parseInt(arguments[4]), Integer.parseInt(arguments[5]), arguments[6].toUpperCase()));
-								} else if(line.startsWith("cubyz:ground_patch")) {
+								}
+								else if(line.startsWith("cubyz:ground_patch")) {
 									String [] arguments = line.substring("cubyz:ground_patch".length()).trim().split("\\s+");
 									vegetation.add(new GroundPatch(CubyzRegistries.BLOCK_REGISTRY.getByID(arguments[0]), Float.parseFloat(arguments[1]), Float.parseFloat(arguments[2]), Float.parseFloat(arguments[3]), Float.parseFloat(arguments[4]), Float.parseFloat(arguments[5])));
-								} else {
+								}
+								else {
 									Logger.warning("Could not find structure \"" + line.split("\\s+")[0] + "\" specified in line " + lineNumber + " in file " + file.getPath());
 								}
-							} else {
+							}
+							else {
 								if(line.startsWith("roughness")) {
 									roughness = Float.parseFloat(line.substring(9));
-								} else if(line.startsWith("hills")) {
+								}
+								else if(line.startsWith("hills")) {
 									hills = Float.parseFloat(line.substring(5));
-								} else if(line.startsWith("mountains")) {
+								}
+								else if(line.startsWith("mountains")) {
 									mountains = Float.parseFloat(line.substring(9));
-								} else if(line.startsWith("height")) {
+								}
+								else if(line.startsWith("height")) {
 									String[] heightArguments = line.substring(6).split("to");
 									minHeight = Float.parseFloat(heightArguments[0].trim());
 									maxHeight = Float.parseFloat(heightArguments[1].trim());
-								} else if(line.startsWith("type")) {
+								}
+								else if(line.startsWith("type")) {
 									type = line.substring(4).trim();
-								} else if(line.startsWith("chance")) {
+								}
+								else if(line.startsWith("chance")) {
 									chance = Float.parseFloat(line.substring(6).trim());
-								} else if(line.startsWith("rivers")) {
+								}
+								else if(line.startsWith("rivers")) {
 									supportsRivers = true;
-								} else if(line.startsWith("ground_structure")) {
+								}
+								else if(line.startsWith("ground_structure")) {
 									String[] blocks = line.substring(16).split(",");
 									for(int i = 0; i < blocks.length; i++) {
 										String[] parts = blocks[i].trim().split("\\s+");
@@ -260,9 +282,11 @@ public class AddonsMod {
 											underground.add(new BlockStructure.BlockStack(block, min, max));
 										}
 									}
-								} else if(line.startsWith("structures:")) {
+								}
+								else if(line.startsWith("structures:")) {
 									startedStructures = true;
-								} else {
+								}
+								else {
 									Logger.warning("Could not find argument \"" + line.split("\\s+")[0] + "\" specified in line " + lineNumber + " in file " + file.getPath());
 								}
 							}
