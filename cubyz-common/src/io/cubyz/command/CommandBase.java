@@ -22,7 +22,7 @@ public abstract class CommandBase implements RegistryElement {
 	 * @return command name
 	 */
 	public String getCommandName() {
-		return name;
+		return this.name;
 	}
 	
 	public Permission[] getRequiredPermissions() {

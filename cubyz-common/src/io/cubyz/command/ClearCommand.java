@@ -11,8 +11,8 @@ import io.cubyz.items.ItemStack;
 
 public class ClearCommand extends CommandBase {
 
-	{
-		name = "clear";
+	public ClearCommand(){
+		this.name = "clear";
 	}
 	
 	@Override
