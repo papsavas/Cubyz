@@ -14,23 +14,23 @@ public class NDTTag {
 	protected int expectedLength;
 	
 	public byte getType() {
-		return type;
+		return this.type;
 	}
 	
 	public boolean validate() {
-		return content.length == expectedLength;
+		return this.content.length == this.expectedLength;
 	}
 	
 	public void setBytes(byte[] bytes) {
-		content = bytes;
+		this.content = bytes;
 	}
 	
 	public void setByte(int index, byte b) {
-		content[index] = b;
+		this.content[index] = b;
 	}
 	
 	public byte[] getData() {
-		return content;
+		return this.content;
 	}
 	
 	public static NDTTag fromBytes(byte[] bytes) {

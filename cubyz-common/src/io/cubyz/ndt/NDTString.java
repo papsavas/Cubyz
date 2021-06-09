@@ -6,25 +6,24 @@ import io.cubyz.Constants;
 
 @Deprecated
 public class NDTString extends NDTTag {
-
-	{
+	public NDTString(){
 		this.expectedLength = -1;
 		this.type = NDTConstants.TYPE_STRING;
 	}
 	
 	public int getLength() {
-		return content.length;
+		return this.content.length;
 	}
 	
 	public String getValue() {
-		return Constants.CHARSET.decode(ByteBuffer.wrap(content)).toString();
+		return Constants.CHARSET.decode(ByteBuffer.wrap(this.content)).toString();
 	}
 	
 	public void setValue(String str) {
 		ByteBuffer b = Constants.CHARSET.encode(str);
-		content = new byte[b.limit()];
+		this.content = new byte[b.limit()];
 		for (int i = 0; i < b.limit(); i++) {
-			content[i] = b.get(i);
+			this.content[i] = b.get(i);
 		}
 	}
 	
