@@ -22,21 +22,91 @@ public class MessagePack {
 	enum PrimitiveType {
 		PRIMITIVE_BOOLEAN,
 		PRIMITIVE_STRING,
-		PRIMITIVE_NUMBER
-	}
-	
-	enum NumberType {
 		INTEGER_POSITIVE,
 		INTEGER_NEGATIVE,
 		FLOAT,
 		DOUBLE
 	}
 
+
+	public static void WritePrimitive(JsonElement json,DataOutputStream out) throws IOException {
+		JsonPrimitive prim = json.getAsJsonPrimitive();
+		PrimitiveType PrimType = null;
+		float singleNum = 0;
+		long num = 0;
+		double doubleNum = 0;
+		MessagePack mpack = new MessagePack();
+		PrimitiveFactory primitiveFactory = mpack.new PrimitiveFactory();
+		
+		PrimitiveInterface prim1;
+		if (prim.isBoolean()) {
+			PrimType = PrimitiveType.PRIMITIVE_BOOLEAN;
+			prim1 = primitiveFactory.getPrimitiveType(PrimType);
+			prim1.WriteIt(prim,out,doubleNum,singleNum,num);
+		}
+		if (prim.isString()) {
+			PrimType = PrimitiveType.PRIMITIVE_STRING;
+			prim1 = primitiveFactory.getPrimitiveType(PrimType);
+			prim1.WriteIt(prim,out,doubleNum,singleNum,num);
+		}
+		if (prim.isNumber()) {
+			num = prim.getAsLong();
+			doubleNum = prim.getAsDouble();
+			singleNum = prim.getAsFloat();
+			if (num != doubleNum) {
+				if (singleNum != doubleNum) {
+					PrimType = PrimitiveType.DOUBLE;
+					prim1 = primitiveFactory.getPrimitiveType(PrimType);
+					prim1.WriteIt(prim,out,doubleNum,singleNum,num);
+				}else {
+					PrimType = PrimitiveType.FLOAT;
+					prim1 = primitiveFactory.getPrimitiveType(PrimType);
+					prim1.WriteIt(prim,out,doubleNum,singleNum,num);
+				}			
+			}else {
+				if (num >= 0) {
+					PrimType = PrimitiveType.INTEGER_POSITIVE;
+					prim1 = primitiveFactory.getPrimitiveType(PrimType);
+					prim1.WriteIt(prim,out,doubleNum,singleNum,num);
+				}else {
+					PrimType = PrimitiveType.INTEGER_NEGATIVE;
+					prim1 = primitiveFactory.getPrimitiveType(PrimType);
+					prim1.WriteIt(prim,out,doubleNum,singleNum,num);
+				}		
+			}
+		}
+	}
+	
+	public class PrimitiveFactory {
+		
+		   //use getPrimitiveType method to get type of Primitive
+		   public PrimitiveInterface getPrimitiveType(PrimitiveType primType){
+		      if(primType == null){
+		         return null;
+		      }		
+		      if(primType.equals(PrimitiveType.PRIMITIVE_BOOLEAN)){
+		         return new BooleanPrimitive();	         
+		      } else if(primType.equals(PrimitiveType.PRIMITIVE_STRING)){
+		         return new StringPrimimitve();        
+		      } else if(primType.equals(PrimitiveType.DOUBLE)){
+		         return new DoublePrimimitve();
+		      } else if(primType.equals(PrimitiveType.FLOAT)){
+			     return new FloatPrimimitve();      
+			  } else if(primType.equals(PrimitiveType.INTEGER_POSITIVE)){
+			     return new NegativeIntegerPrimimitve();
+			  } else if(primType.equals(PrimitiveType.INTEGER_NEGATIVE)){
+				 return new PositiveIntegerPrimimitve();
+			  }
+		      
+		      return null;
+		   }
+	}
+	
 	public static byte[] encode(JsonElement json) throws IOException {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		DataOutputStream out = new DataOutputStream(baos);
 		StreamType JsonElementType = null;
-		
+				
 		if(json.isJsonObject()) {
 			JsonElementType = StreamType.OBJECT_TYPE;
 		}
@@ -91,138 +161,98 @@ public class MessagePack {
 		out.write(0xC0);
 	}
 	
+	public interface PrimitiveInterface{
+		void WriteIt(JsonPrimitive prim, DataOutputStream out,double doubleNum,float singleNum,long num) throws IOException;
+	}
 	
-	public static void WritePrimitive(JsonElement json,DataOutputStream out) throws IOException {
-		JsonPrimitive prim = json.getAsJsonPrimitive();
-		PrimitiveType PrimType = null;
-		
-		if (prim.isBoolean()) {
-			PrimType = PrimitiveType.PRIMITIVE_BOOLEAN;
-		}
-		if (prim.isString()) {
-			PrimType = PrimitiveType.PRIMITIVE_STRING;
-		}
-		if (prim.isNumber()) {
-			PrimType = PrimitiveType.PRIMITIVE_NUMBER;
-		}
-		
-		switch(PrimType) {
-		case PRIMITIVE_BOOLEAN:
-			WritePrimitiveBoolean(prim,out);
-			break;
-		case PRIMITIVE_STRING:
-			WritePrimitiveString(prim,out);
-			break;
-		case PRIMITIVE_NUMBER:
-			WritePrimitiveNumber(prim,out);
-			break;
+	public class BooleanPrimitive implements PrimitiveInterface {
+		@Override
+		public void WriteIt(JsonPrimitive prim,DataOutputStream out,double doubleNum,float singleNum,long num)throws IOException  {
+			   out.write(prim.getAsBoolean() ? 0xc3 : 0xc2);
 		}
 	}
 	
-	public static void WritePrimitiveBoolean(JsonPrimitive prim,DataOutputStream out)throws IOException {
-		out.write(prim.getAsBoolean() ? 0xc3 : 0xc2);
-	}
-	
-	public static void WritePrimitiveString(JsonPrimitive prim,DataOutputStream out)throws IOException {
-		String str = prim.getAsString();
-		int len = str.length();
-		if (len < 32) { // fixstr
-			out.write(0b10100000 | len);
-			out.write(str.getBytes(Constants.CHARSET));
-		} else if (len < 0xFF) { // str 8
-			out.write(0xD9);
-			out.write(len);
-			out.write(str.getBytes(Constants.CHARSET));
-		} else if (len < 0xFFFF) { // str 16
-			out.write(0xDA);
-			out.writeShort(len);
-			out.write(str.getBytes(Constants.CHARSET));
-		} else if (len < 0xFFFFFFFF) { // str 32
-			out.write(0xDB);
-			out.writeInt(len);
-			out.write(str.getBytes(Constants.CHARSET));
+	public class StringPrimimitve implements PrimitiveInterface {
+		@Override
+		public void WriteIt(JsonPrimitive prim,DataOutputStream out,double doubleNum,float singleNum,long num)throws IOException  {
+			String str = prim.getAsString();
+			int len = str.length();
+			if (len < 32) { // fixstr
+				out.write(0b10100000 | len);
+				out.write(str.getBytes(Constants.CHARSET));
+			} else if (len < 0xFF) { // str 8
+				out.write(0xD9);
+				out.write(len);
+				out.write(str.getBytes(Constants.CHARSET));
+			} else if (len < 0xFFFF) { // str 16
+				out.write(0xDA);
+				out.writeShort(len);
+				out.write(str.getBytes(Constants.CHARSET));
+			} else if (len < 0xFFFFFFFF) { // str 32
+				out.write(0xDB);
+				out.writeInt(len);
+				out.write(str.getBytes(Constants.CHARSET));
+			}
 		}
 	}
 	
-	public static void WriteDouble(double doubleNum,DataOutputStream out) throws IOException {
-		out.write(0xCB);
-		out.writeDouble(doubleNum);
-	}
-	
-	public static void WriteFloat(float singleNum,DataOutputStream out) throws IOException {
-		out.write(0xCA);
-		out.writeFloat(singleNum);
-	}
-	
-	public static void WritePositive(long num,DataOutputStream out) throws IOException {
-		if (num <= 0x7F) { // 7-bit positive
-			out.write((int) num);
-		} else if (num <= 0xFF) { // 8-bit unsigned
-			out.write(0xCC);
-			out.write((int) num);
-		} else if (num <= 0xFFFF) { // 16-bit unsigned
-			out.write(0xCD);
-			out.writeShort((short) num);
-		} else if (num <= 0xFFFFFFFFL) { // 32-bit unsigned
-			out.write(0xCE);
-			out.writeInt((int) num);
-		} else { // 64-bit unsigned (actually 63-bit due to Java's long being signed)
-			out.write(0xCF);
-			out.writeLong(num);
+	public class DoublePrimimitve implements PrimitiveInterface {
+		@Override
+		public void WriteIt(JsonPrimitive prim,DataOutputStream out,double doubleNum,float singleNum,long num)throws IOException  {
+			out.write(0xCB);
+			out.writeDouble(doubleNum);
 		}
 	}
 	
-	public static void WriteNegative(long num,DataOutputStream out) throws IOException {
-		if (num >= -0x1F) { // 5-bit negative
-			int b = 0b11100000 | Math.abs((int) num);
-			out.write(b);
-		} else if (num >= Byte.MIN_VALUE) { // 8-bit signed
-			out.write(0xD0);
-			out.write((int) num);
-		} else if (num >= Short.MIN_VALUE) { // 16-bit signed
-			out.write(0xD1);
-			out.writeShort((short) num);
-		} else if (num >= Integer.MIN_VALUE) { // 32-bit signed
-			out.write(0xD2);
-			out.writeInt((int) num);
-		} else { // 64-bit signed
-			out.write(0xD3);
-			out.writeLong(num);
+	public class FloatPrimimitve implements PrimitiveInterface {
+		@Override
+		public void WriteIt(JsonPrimitive prim,DataOutputStream out,double doubleNum,float singleNum,long num)throws IOException  {
+			out.write(0xCA);
+			out.writeFloat(singleNum);
 		}
 	}
 	
-	public static void WritePrimitiveNumber(JsonPrimitive prim,DataOutputStream out)throws IOException {
-		long num = prim.getAsLong();
-		double doubleNum = prim.getAsDouble();
-		float singleNum = prim.getAsFloat();
-		NumberType NumType = null;
-		if (num != doubleNum) {
-			if (singleNum != doubleNum) {
-				NumType = NumberType.DOUBLE;
-			}else {
-				NumType = NumberType.FLOAT;
-			}			
-		}else {
-			if (num >= 0) {
-				NumType = NumberType.INTEGER_POSITIVE;
-			}else {
-				NumType = NumberType.INTEGER_NEGATIVE;
-			}		
+	public class NegativeIntegerPrimimitve implements PrimitiveInterface {
+		@Override
+		public void WriteIt(JsonPrimitive prim,DataOutputStream out,double doubleNum,float singleNum,long num)throws IOException  {
+			if (num >= -0x1F) { // 5-bit negative
+				int b = 0b11100000 | Math.abs((int) num);
+				out.write(b);
+			} else if (num >= Byte.MIN_VALUE) { // 8-bit signed
+				out.write(0xD0);
+				out.write((int) num);
+			} else if (num >= Short.MIN_VALUE) { // 16-bit signed
+				out.write(0xD1);
+				out.writeShort((short) num);
+			} else if (num >= Integer.MIN_VALUE) { // 32-bit signed
+				out.write(0xD2);
+				out.writeInt((int) num);
+			} else { // 64-bit signed
+				out.write(0xD3);
+				out.writeLong(num);
+			}
 		}
-		
-		switch(NumType) {
-		case DOUBLE:
-			WriteDouble(doubleNum,out);
-			break;
-		case FLOAT:
-			WriteFloat(singleNum,out);
-			break;
-		case INTEGER_POSITIVE:
-			WritePositive(num,out);
-			break;
-		case INTEGER_NEGATIVE:
-			WriteNegative(num,out);
-			break;
-		}	
-	}	
+	}
+	
+	public class PositiveIntegerPrimimitve implements PrimitiveInterface {
+		@Override
+		public void WriteIt(JsonPrimitive prim,DataOutputStream out,double doubleNum,float singleNum,long num)throws IOException  {
+			if (num <= 0x7F) { // 7-bit positive
+				out.write((int) num);
+			} else if (num <= 0xFF) { // 8-bit unsigned
+				out.write(0xCC);
+				out.write((int) num);
+			} else if (num <= 0xFFFF) { // 16-bit unsigned
+				out.write(0xCD);
+				out.writeShort((short) num);
+			} else if (num <= 0xFFFFFFFFL) { // 32-bit unsigned
+				out.write(0xCE);
+				out.writeInt((int) num);
+			} else { // 64-bit unsigned (actually 63-bit due to Java's long being signed)
+				out.write(0xCF);
+				out.writeLong(num);
+			}
+		}
+	}
+	
 }
