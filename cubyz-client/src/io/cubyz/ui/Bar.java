@@ -25,7 +25,7 @@ public abstract class Bar {
         int i=0;
         int idx = isEmpty(i, currentFeature) ? 0 : 1; //begining
         drawImgInsideBar(i, idx, yAxisImg, win);
-        i++;
+        i+=2;
         while(i < maxFeature - 2){
             if(isEmpty(i, currentFeature))
                 idx = 4;
