@@ -9,7 +9,7 @@ import io.cubyz.api.Resource;
 public class TimeCommand extends CommandBase {
 
 	public TimeCommand() {
-		name = "time";
+		this.name = "time";
 	}
 	
 	@Override

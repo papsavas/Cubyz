@@ -7,8 +7,8 @@ import io.cubyz.entity.Player;
 
 public class TPCommand extends CommandBase {
 
-	{
-		name = "tp";
+	public TPCommand(){
+		this.name = "tp";
 	}
 	
 	@Override

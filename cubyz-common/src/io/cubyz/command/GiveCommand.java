@@ -12,8 +12,8 @@ import io.cubyz.items.Item;
 
 public class GiveCommand extends CommandBase {
 
-	{
-		name = "give";
+	public GiveCommand(){
+		this.name = "give";
 	}
 	
 	@Override

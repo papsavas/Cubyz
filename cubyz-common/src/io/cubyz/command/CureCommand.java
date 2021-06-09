@@ -8,9 +8,8 @@ import io.cubyz.entity.Player;
  */
 
 public class CureCommand extends CommandBase {
-
-	{
-		name = "cure";
+	public CureCommand(){
+		this.name = "cure";
 	}
 	
 	@Override
