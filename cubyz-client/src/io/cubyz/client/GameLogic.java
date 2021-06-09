@@ -121,26 +121,7 @@ public class GameLogic implements ClientConnection {
 		System.gc();
 	}
 	
-	public void loadWorld(Surface surface) { // TODO: Seperate all the things out that are generated for the current surface.
-		if (Cubyz.world != null) {
-			quitWorld();
-		}
-		if (skySun == null || skyMoon == null) {
-			Mesh sunMesh = skyBodyMesh.cloneNoMaterial();
-			sunMesh.setMaterial(new Material(new Vector4f(1f, 1f, 0f, 1f), 1f)); // TODO: use textures for sun and moon
-			skySun = new Spatial(sunMesh);
-			skySun.setScale(50f); // TODO: Make the scale dependent on the actual distance to that star.
-			skySun.setPositionRaw(-100, 1, 0);
-			Mesh moonMesh = skyBodyMesh.cloneNoMaterial();
-			moonMesh.setMaterial(new Material(new Vector4f(0.3f, 0.3f, 0.3f, 1f), 0.9f));
-			skyMoon = new Spatial(moonMesh);
-			skyMoon.setScale(100f);
-			skyMoon.setPositionRaw(100, 1, 0);
-			GameLauncher.renderer.worldSpatialList = new Spatial[] {skySun/*, skyMoon*/};
-		}
-		Cubyz.surface = surface;
-		World world = surface.getStellarTorus().getWorld();
-		Cubyz.player = (PlayerImpl)world.getLocalPlayer();
+	public void startingPos(World world, Surface surface) {
 		if (world.isLocal()) {
 			Random rnd = new Random();
 			int dx = 0;
@@ -160,11 +141,10 @@ public class GameLogic implements ClientConnection {
 				Logger.log("OK!");
 			}
 		}
-		// Make sure the world is null until the player position is known.
-		Cubyz.world = world;
-		DiscordIntegration.setStatus("Playing");
-		Cubyz.gameUI.addOverlay(new GameOverlay());
 		
+	}
+	
+	public void customOre(World world, Surface surface) {
 		if (world instanceof LocalWorld) { // custom ores on multiplayer later, maybe?
 			LocalSurface ts = (LocalSurface) surface;
 			ArrayList<CustomBlock> customBlocks = ts.getCustomBlocks();
@@ -198,6 +178,40 @@ public class GameLogic implements ClientConnection {
 				item.setImage(NGraphics.nvgImageFrom(tex));
 			}
 		}
+		
+	}
+	
+	public void loadWorld(Surface surface) { // TODO: Seperate all the things out that are generated for the current surface.
+		if (Cubyz.world != null) {
+			quitWorld();
+		}
+		if (skySun == null || skyMoon == null) {
+			Mesh sunMesh = skyBodyMesh.cloneNoMaterial();
+			sunMesh.setMaterial(new Material(new Vector4f(1f, 1f, 0f, 1f), 1f)); // TODO: use textures for sun and moon
+			skySun = new Spatial(sunMesh);
+			skySun.setScale(50f); // TODO: Make the scale dependent on the actual distance to that star.
+			skySun.setPositionRaw(-100, 1, 0);
+			Mesh moonMesh = skyBodyMesh.cloneNoMaterial();
+			moonMesh.setMaterial(new Material(new Vector4f(0.3f, 0.3f, 0.3f, 1f), 0.9f));
+			skyMoon = new Spatial(moonMesh);
+			skyMoon.setScale(100f);
+			skyMoon.setPositionRaw(100, 1, 0);
+			GameLauncher.renderer.worldSpatialList = new Spatial[] {skySun/*, skyMoon*/};
+		}
+		Cubyz.surface = surface;
+		World world = surface.getStellarTorus().getWorld();
+		Cubyz.player = (PlayerImpl)world.getLocalPlayer();
+		
+		startingPos(world,surface);
+	
+		// Make sure the world is null until the player position is known.
+		Cubyz.world = world;
+		DiscordIntegration.setStatus("Playing");
+		Cubyz.gameUI.addOverlay(new GameOverlay());
+		
+		customOre(world,surface);
+		
+		
 		// Generate the texture atlas for this surface's truly transparent blocks:
 		ArrayList<Block> blocks = new ArrayList<>();
 		for(Block block : surface.getCurrentRegistries().blockRegistry.registered(new Block[0])) {
@@ -220,6 +234,23 @@ public class GameLogic implements ClientConnection {
 			blockTextures.add(texture);
 		}
 		// Put the textures into the atlas
+	
+		setTexture(maxSize,blockTextures,blocks);
+		
+		SoundSource ms = musicSource;
+		if (ms != null) {
+			if (!ms.isPlaying()) {
+				// ms.play();
+				// Music is disabled for now because right now it's annoying and kind of unrelated to the game.
+				// TODO: Find a better concept for playing music in the game that preferably fits the player's current situation.
+			}
+		}
+		
+		// Call mods for this new surface. Mods sometimes need to do extra stuff for the specific surface.
+		ModLoader.postSurfaceGen(surface.getCurrentRegistries());
+	}
+	
+	public void setTexture(int maxSize, ArrayList<BufferedImage> blockTextures,ArrayList<Block> blocks){
 		BufferedImage atlas = new BufferedImage(maxSize*Meshes.atlasSize, maxSize*Meshes.atlasSize, BufferedImage.TYPE_INT_ARGB);
 		int x = 0;
 		int y = 0;
@@ -245,19 +276,6 @@ public class GameLogic implements ClientConnection {
 			ImageIO.write(atlas, "png", new File("test.png"));
 		} catch(Exception e) {}
 		Meshes.atlas = new Texture(TextureConverter.fromBufferedImage(atlas));
-		
-		
-		SoundSource ms = musicSource;
-		if (ms != null) {
-			if (!ms.isPlaying()) {
-				// ms.play();
-				// Music is disabled for now because right now it's annoying and kind of unrelated to the game.
-				// TODO: Find a better concept for playing music in the game that preferably fits the player's current situation.
-			}
-		}
-		
-		// Call mods for this new surface. Mods sometimes need to do extra stuff for the specific surface.
-		ModLoader.postSurfaceGen(surface.getCurrentRegistries());
 	}
 
 	public void requestJoin(String host) {
@@ -418,54 +436,8 @@ public class GameLogic implements ClientConnection {
 		if (!Cubyz.gameUI.doesGUIPauseGame() && Cubyz.world != null) {
 			if (!Cubyz.gameUI.doesGUIBlockInput()) {
 				Cubyz.player.move(Cubyz.playerInc.mul(0.11F), Cubyz.camera.getRotation(), Cubyz.surface.getSizeX(), Cubyz.surface.getSizeZ());
-				if (breakCooldown > 0) {
-					breakCooldown--;
-				}
-				if (buildCooldown > 0) {
-					buildCooldown--;
-				}
-				if (Keybindings.isPressed("destroy")) {
-					//Breaking Blocks
-					if(Cubyz.player.isFlying()) { // Ignore hardness when in flying.
-						if (breakCooldown == 0) {
-							breakCooldown = 7;
-							Object bi = Cubyz.msd.getSelected();
-							if (bi != null && bi instanceof BlockInstance && ((BlockInstance)bi).getBlock().getBlockClass() != BlockClass.UNBREAKABLE) {
-								Cubyz.surface.removeBlock(((BlockInstance)bi).getX(), ((BlockInstance)bi).getY(), ((BlockInstance)bi).getZ());
-							}
-						}
-					}
-					else {
-						Object selected = Cubyz.msd.getSelected();
-						if(selected instanceof BlockInstance) {
-							Cubyz.player.breaking((BlockInstance)selected, Cubyz.inventorySelection, Cubyz.surface);
-						}
-					}
-					// Hit entities:
-					Object selected = Cubyz.msd.getSelected();
-					if(selected instanceof Entity) {
-						((Entity)selected).hit(Cubyz.player.getInventory().getItem(Cubyz.inventorySelection) instanceof Tool ? (Tool)Cubyz.player.getInventory().getItem(Cubyz.inventorySelection) : null, Cubyz.camera.getViewMatrix().positiveZ(Cubyz.dir).negate());
-					}
-				} else {
-					Cubyz.player.resetBlockBreaking();
-				}
-				if (Keybindings.isPressed("place/use") && buildCooldown <= 0) {
-					if((Cubyz.msd.getSelected() instanceof BlockInstance) && ((BlockInstance)Cubyz.msd.getSelected()).getBlock().onClick(Cubyz.world, ((BlockInstance)Cubyz.msd.getSelected()).getPosition())) {
-						// Interact with block(potentially do a hand animation, in the future).
-					} else if(Cubyz.player.getInventory().getItem(Cubyz.inventorySelection) instanceof ItemBlock) {
-						// Build block:
-						if (Cubyz.msd.getSelected() != null) {
-							buildCooldown = 10;
-							Cubyz.msd.placeBlock(Cubyz.player.getInventory(), Cubyz.inventorySelection, Cubyz.surface);
-						}
-					} else if(Cubyz.player.getInventory().getItem(Cubyz.inventorySelection) != null) {
-						// Use item:
-						if(Cubyz.player.getInventory().getItem(Cubyz.inventorySelection).onUse(Cubyz.player)) {
-							Cubyz.player.getInventory().getStack(Cubyz.inventorySelection).add(-1);
-							buildCooldown = 10;
-						}
-					}
-				}
+				Destroy();
+				PlaceUse();
 			}
 			Cubyz.playerInc.x = Cubyz.playerInc.y = Cubyz.playerInc.z = 0.0F; // Reset positions
 			NormalChunk ch = Cubyz.surface.getChunk((int)Cubyz.player.getPosition().x >> NormalChunk.chunkShift, (int)Cubyz.player.getPosition().y >> NormalChunk.chunkShift, (int)Cubyz.player.getPosition().z >> NormalChunk.chunkShift);
@@ -479,7 +451,63 @@ public class GameLogic implements ClientConnection {
 			skySun.setRotation(0, 0, -lightAngle);
 		}
 	}
-
+	
+	public void Destroy()
+	{
+		if (breakCooldown > 0) {
+			breakCooldown--;
+		}
+		if (Keybindings.isPressed("destroy")) {
+			//Breaking Blocks
+			if(Cubyz.player.isFlying()) { // Ignore hardness when in flying.
+				if (breakCooldown == 0) {
+					breakCooldown = 7;
+					Object bi = Cubyz.msd.getSelected();
+					if (bi != null && bi instanceof BlockInstance && ((BlockInstance)bi).getBlock().getBlockClass() != BlockClass.UNBREAKABLE) {
+						Cubyz.surface.removeBlock(((BlockInstance)bi).getX(), ((BlockInstance)bi).getY(), ((BlockInstance)bi).getZ());
+					}
+				}
+			}
+			else {
+				Object selected = Cubyz.msd.getSelected();
+				if(selected instanceof BlockInstance) {
+					Cubyz.player.breaking((BlockInstance)selected, Cubyz.inventorySelection, Cubyz.surface);
+				}
+			}
+			// Hit entities:
+			Object selected = Cubyz.msd.getSelected();
+			if(selected instanceof Entity) {
+				((Entity)selected).hit(Cubyz.player.getInventory().getItem(Cubyz.inventorySelection) instanceof Tool ? (Tool)Cubyz.player.getInventory().getItem(Cubyz.inventorySelection) : null, Cubyz.camera.getViewMatrix().positiveZ(Cubyz.dir).negate());
+			}
+		} else {
+			Cubyz.player.resetBlockBreaking();
+		}
+	}
+	
+	public void PlaceUse()
+	{
+		if (buildCooldown > 0) {
+			buildCooldown--;
+		}
+		if (Keybindings.isPressed("place/use") && buildCooldown <= 0) {
+			if((Cubyz.msd.getSelected() instanceof BlockInstance) && ((BlockInstance)Cubyz.msd.getSelected()).getBlock().onClick(Cubyz.world, ((BlockInstance)Cubyz.msd.getSelected()).getPosition())) {
+				// Interact with block(potentially do a hand animation, in the future).
+			} else if(Cubyz.player.getInventory().getItem(Cubyz.inventorySelection) instanceof ItemBlock) {
+				// Build block:
+				if (Cubyz.msd.getSelected() != null) {
+					buildCooldown = 10;
+					Cubyz.msd.placeBlock(Cubyz.player.getInventory(), Cubyz.inventorySelection, Cubyz.surface);
+				}
+			} else if(Cubyz.player.getInventory().getItem(Cubyz.inventorySelection) != null) {
+				// Use item:
+				if(Cubyz.player.getInventory().getItem(Cubyz.inventorySelection).onUse(Cubyz.player)) {
+					Cubyz.player.getInventory().getStack(Cubyz.inventorySelection).add(-1);
+					buildCooldown = 10;
+				}
+			}
+		}
+	}
+	
 	public static int getFPS() {
 		return GameLauncher.instance.getFPS();
 	}
