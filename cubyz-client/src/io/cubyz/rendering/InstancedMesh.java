@@ -52,40 +52,8 @@ public class InstancedMesh extends Mesh {
 		this.numInstances = numInstances;
 		vboIdList.add(modelViewVBO);
 		instanceDataBuffer = MemoryUtil.memAllocFloat(numInstances * INSTANCE_SIZE_FLOATS);
-		glBindBuffer(GL_ARRAY_BUFFER, modelViewVBO);
-		int start = 3;
-		int strideStart = 0;
-		// Model matrix:
-		for (int i = 0; i < 4; i++) {
-			glVertexAttribPointer(start, 4, GL_FLOAT, false, INSTANCE_SIZE_BYTES, strideStart);
-			glVertexAttribDivisor(start, 1);
-			start++;
-			strideStart += VECTOR4F_SIZE_BYTES;
-		}
-		// Light Color:
-		for(int i = 0; i < 8; i++) {
-			glVertexAttribPointer(start, 1, GL_FLOAT, false, INSTANCE_SIZE_BYTES, strideStart);
-			glVertexAttribDivisor(start, 1);
-			start++;
-			strideStart += FLOAT_SIZE_BYTES;
-		}
-		// Selection/Breaking: 0 = not selected
-		glVertexAttribPointer(start, 1, GL_FLOAT, false, INSTANCE_SIZE_BYTES, strideStart);
-		glVertexAttribDivisor(start, 1);
-		start++;
-		strideStart += FLOAT_SIZE_BYTES;
 
-		// Light view matrix
-		
-		for (int i = 0; i < 4; i++) {
-			glVertexAttribPointer(start, 4, GL_FLOAT, false, INSTANCE_SIZE_BYTES, strideStart);
-			glVertexAttribDivisor(start, 1);
-			start++;
-			strideStart += VECTOR4F_SIZE_BYTES;
-		}
-
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
+		setInstancesInfo(4, 8, true);
 	}
 	
 	public InstancedMesh(Model model, int numInstances) {
@@ -99,31 +67,8 @@ public class InstancedMesh extends Mesh {
 		this.numInstances = numInst;
 		glBindVertexArray(vaoId);
 		instanceDataBuffer = MemoryUtil.memRealloc(instanceDataBuffer, numInstances * INSTANCE_SIZE_FLOATS);
-		glBindBuffer(GL_ARRAY_BUFFER, modelViewVBO);
-		int start = 3;
-		int strideStart = 0;
-		// Model matrix:
-		for (int i = 0; i < 3; i++) {
-			glVertexAttribPointer(start, 4, GL_FLOAT, false, INSTANCE_SIZE_BYTES, strideStart);
-			glVertexAttribDivisor(start, 1);
-			start++;
-			strideStart += VECTOR4F_SIZE_BYTES;
-		}
-		// Light Color:
-		for(int i = 0; i < 8; i++) {
-			glVertexAttribPointer(start, 1, GL_FLOAT, false, INSTANCE_SIZE_BYTES, strideStart);
-			glVertexAttribDivisor(start, 1);
-			start++;
-			strideStart += FLOAT_SIZE_BYTES;
-		}
-		// Selection:
-		glVertexAttribPointer(start, 1, GL_FLOAT, false, INSTANCE_SIZE_BYTES, strideStart);
-		glVertexAttribDivisor(start, 1);
-		start++;
-		strideStart += FLOAT_SIZE_BYTES;
 
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
+		setInstancesInfo(3, 8, false);
 	}
 
 	public Mesh cloneNoMaterial() {
@@ -166,7 +111,7 @@ public class InstancedMesh extends Mesh {
 
 	int oldSize = 0;
 	
-	/**
+	/*
 	 * Render list instanced in a non-chunked way
 	 * @param spatials
 	 * @param transformation
@@ -252,5 +197,48 @@ public class InstancedMesh extends Mesh {
 	
 	private void renderChunkInstanced(int size, Transformation transformation) {
 		glDrawElementsInstanced(GL_TRIANGLES, vertexCount, GL_UNSIGNED_INT, 0, size);
+	}
+
+	public void setAllVertexAttributesInfo(int start, int iterations, int size, int strideStart, int bytes) {
+		for (int i = 0; i < iterations; i++) {
+			setVertexAttributeInfo(start, size, strideStart);
+			start ++;
+			strideStart += bytes;
+		}
+	}
+
+	public void setVertexAttributeInfo(int start, int size, long strideStart){
+		glVertexAttribPointer(start, size, GL_FLOAT, false, INSTANCE_SIZE_BYTES, strideStart);
+		glVertexAttribDivisor(start, 1);
+	}
+
+	public void setInstancesInfo(int modelMatrixIterations, int lightColorIterations, boolean lightViewMatrix){
+		glBindBuffer(GL_ARRAY_BUFFER, modelViewVBO);
+		int start = 3;
+		int strideStart = 0;
+
+		// Model matrix:
+		setAllVertexAttributesInfo(start, modelMatrixIterations, 4, strideStart, VECTOR4F_SIZE_BYTES);
+		start += modelMatrixIterations;
+		strideStart += VECTOR4F_SIZE_BYTES * modelMatrixIterations;
+
+		// Light Color:
+		setAllVertexAttributesInfo(start,lightColorIterations, 1, strideStart, FLOAT_SIZE_BYTES);
+		start += lightColorIterations;
+		strideStart += FLOAT_SIZE_BYTES * lightColorIterations;
+
+		// Selection:
+		setVertexAttributeInfo(start,1, strideStart);
+		start ++;
+		strideStart += FLOAT_SIZE_BYTES;
+
+		if(lightViewMatrix) {
+			// Light view matrix
+			setAllVertexAttributesInfo(start, 4, 4, strideStart, VECTOR4F_SIZE_BYTES);
+		}
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindVertexArray(0);
+
 	}
 }
