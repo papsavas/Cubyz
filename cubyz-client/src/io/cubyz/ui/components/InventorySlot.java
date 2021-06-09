@@ -54,66 +54,47 @@ public class InventorySlot extends Component {
 	
 	public void drawTooltip(MouseInput mouse, int width, int height) {
 		Item item = reference.getItem();
-		if (item != null) {
-			if (isInside(mouse.getCurrentPos(), width, height)) {
-				double x = mouse.getX() + 10;
-				double y = mouse.getY() + 10;
-				String tooltip;
-				if(item instanceof Tool) {
-					tooltip = item.getName() == null ? "???" : item.getName().getTranslation();
-					for(Modifier m : ((Tool)item).getModifiers()) {
-						tooltip += "\n"+m.getName()+"\n"+m.getDescription()+"\n";
-					}
-				} else {
-					tooltip = item.getName() == null ? "???" : item.getName().getTranslation();
+		if (item != null && isInside(mouse.getCurrentPos(), width, height)) {
+			double x = mouse.getX() + 10;
+			double y = mouse.getY() + 10;
+			String tooltip = item.getName() == null ? "???" : item.getName().getTranslation();
+			if (item instanceof Tool) {
+				for (Modifier m : ((Tool) item).getModifiers()) {
+					tooltip += "\n" + m.getName() + "\n" + m.getDescription() + "\n";
 				}
-				float[] bounds = NGraphics.getTextSize(tooltip);
-				NGraphics.setColor(20, 20, 20);
-				NGraphics.fillRect((float) x, (float) y, bounds[0], bounds[1]);
-				NGraphics.setColor(127, 127, 127);
-				NGraphics.drawRect((float) x, (float) y, bounds[0], bounds[1]);
-				NGraphics.setColor(255, 255, 255);
-				NGraphics.drawText((int) x, (int) y, tooltip);
 			}
+			float[] bounds = NGraphics.getTextSize(tooltip);
+			NGraphics.setColor(20, 20, 20);
+			NGraphics.fillRect((float) x, (float) y, bounds[0], bounds[1]);
+			NGraphics.setColor(127, 127, 127);
+			NGraphics.drawRect((float) x, (float) y, bounds[0], bounds[1]);
+			NGraphics.setColor(255, 255, 255);
+			NGraphics.drawText((int) x, (int) y, tooltip);
 		}
 	}
 	
 	public boolean grabWithMouse(MouseInput mouse, ItemStack carried, int width, int height) {
-		if(!isInside(mouse.getCurrentPos(), width, height)) {
-			if(!pressedLeft && !pressedRight)
-				return false;
+		boolean isIns = isInside(mouse.getCurrentPos(), width, height);
+		if(!isIns && neitherIsPressed()){ return false; }
 			// If the right button was pressed above this, put one item down as soon as the mouse is outside:
-			if(pressedRight && carried.getItem() != null) {
-				if(reference.getItem() == carried.getItem()) {
-					if(reference.add(1) != 0)
-						carried.add(-1);
-				}
-				if(reference.getItem() == null) {
-					reference.setItem(carried.getItem());
-					reference.setAmount(1);
-					carried.add(-1);
-				}
-				pressedRight = false;
-				return true;
-			}
-		}
+		else if(!isIns && buttonMethod(carried)) { return true; }
+
 		// Only do something when the button is released:
 		if(mouse.isLeftButtonPressed()) {
 			pressedLeft = true;
 			return false;
-		}
-		if(mouse.isRightButtonPressed()) {
+		} else if(mouse.isRightButtonPressed()) {
 			pressedRight = true;
 			return false;
 		}
-		if(!pressedLeft && !pressedRight)
+		if(neitherIsPressed())
 			return false;
 		
 		if(takeOnly) {
 			pressedRight = pressedLeft = false;
 			// Take all items from this slot if possible, no matter what button is pressed:
+			if(carried.getItem() == null && reference.getItem() == null) return true;
 			if(carried.getItem() == null) {
-				if(reference.getItem() == null) return true;
 				carried.setItem(reference.getItem());
 			} else if(carried.getItem() != reference.getItem()) {
 				return false; // Cannot pick it up.
@@ -125,19 +106,7 @@ public class InventorySlot extends Component {
 			}
 			return false;
 		}
-		if(pressedRight && carried.getItem() != null) {
-			if(reference.getItem() == carried.getItem()) {
-				if(reference.add(1) != 0)
-					carried.add(-1);
-			}
-			if(reference.getItem() == null) {
-				reference.setItem(carried.getItem());
-				reference.setAmount(1);
-				carried.add(-1);
-			}
-			pressedRight = false;
-			return true;
-		}
+		if(buttonMethod(carried)) return true;
 		pressedRight = false;
 		// If the mouse button was just released inside after pressing:
 		// Remove the ItemStack from this slot and replace with the one carried by the mouse.
@@ -155,6 +124,25 @@ public class InventorySlot extends Component {
 		carried.setItem(buf);
 		carried.setAmount(bufInt);
 		return true;
+	}
+
+	public boolean buttonMethod(ItemStack carried){
+		if(pressedRight && carried.getItem() != null) {
+			if(reference.getItem() == carried.getItem() && reference.add(1) != 0) {
+				carried.add(-1);
+			} else if(reference.getItem() == null) {
+				reference.setItem(carried.getItem());
+				reference.setAmount(1);
+				carried.add(-1);
+			}
+			pressedRight = false;
+			return true;
+		}
+		return false;
+	}
+
+	public boolean neitherIsPressed(){
+		return !pressedLeft && !pressedRight;
 	}
 
 	@Override
