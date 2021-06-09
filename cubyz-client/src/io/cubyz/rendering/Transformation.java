@@ -6,6 +6,8 @@ import org.joml.Vector3f;
 public class Transformation {
 
 	private TransformationProduct transformationProduct;
+	
+	private TransformationOrthoProjection transformationOrthoProjection;
 
 	private final Matrix4f projectionMatrix;
 
@@ -25,6 +27,7 @@ public class Transformation {
 		worldMatrix = new Matrix4f();
 		projectionMatrix = new Matrix4f();
 		this.transformationProduct = new TransformationProduct(new Matrix4f());
+		this.transformationOrthoProjection = new TransformationOrthoProjection(new Matrix4f());
 		orthoMatrix = new Matrix4f();
 		lightViewMatrix = new Matrix4f();
 	}
@@ -43,9 +46,7 @@ public class Transformation {
 	}
 
 	public final Matrix4f getOrthoProjectionMatrix(float left, float right, float bottom, float top, float zNear, float zFar) {
-		orthoMatrix.identity();
-		orthoMatrix.setOrtho(left, right, bottom, top, zNear, zFar);
-		return orthoMatrix;
+		return transformationOrthoProjection.getOrthoProjectionMatrix(left, right, bottom, top, zNear, zFar);
 	}
 
 	public Matrix4f getOrtoProjModelMatrix(Spatial gameItem) {
