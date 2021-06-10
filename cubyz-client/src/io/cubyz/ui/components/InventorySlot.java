@@ -27,7 +27,8 @@ public class InventorySlot extends Component {
 	public static final int SLOT_IMAGE = NGraphics.loadImage("assets/cubyz/guis/inventory/inventory_slot.png");
 
 	/**State of mouse buttons if the mouse is in the area.*/
-	private boolean pressedLeft = false, pressedRight = false;
+	private boolean pressedLeft = false,
+	pressedRight = false;
 	public boolean takeOnly;
 	
 	// WARNING: The y-axis for this element goes from bottom to top!
@@ -51,17 +52,20 @@ public class InventorySlot extends Component {
 		Rectangle hitbox = new Rectangle(width+this.getX(), height-this.getY(), this.width, this.height);
 		return hitbox.contains(vec.x, vec.y);
 	}
-	
+
 	public void drawTooltip(MouseInput mouse, int width, int height) {
 		Item item = reference.getItem();
 		if (item != null && isInside(mouse.getCurrentPos(), width, height)) {
 			double x = mouse.getX() + 10;
 			double y = mouse.getY() + 10;
-			String tooltip = item.getName() == null ? "???" : item.getName().getTranslation();
-			if (item instanceof Tool) {
-				for (Modifier m : ((Tool) item).getModifiers()) {
-					tooltip += "\n" + m.getName() + "\n" + m.getDescription() + "\n";
+			String tooltip;
+			if(item instanceof Tool) {
+				tooltip = item.getName() == null ? "???" : item.getName().getTranslation();
+				for(Modifier m : ((Tool)item).getModifiers()) {
+					tooltip += "\n"+m.getName()+"\n"+m.getDescription()+"\n";
 				}
+			} else {
+				tooltip = item.getName() == null ? "???" : item.getName().getTranslation();
 			}
 			float[] bounds = NGraphics.getTextSize(tooltip);
 			NGraphics.setColor(20, 20, 20);
@@ -70,31 +74,24 @@ public class InventorySlot extends Component {
 			NGraphics.drawRect((float) x, (float) y, bounds[0], bounds[1]);
 			NGraphics.setColor(255, 255, 255);
 			NGraphics.drawText((int) x, (int) y, tooltip);
-		}
+			}
 	}
-	
+
 	public boolean grabWithMouse(MouseInput mouse, ItemStack carried, int width, int height) {
-		boolean isIns = isInside(mouse.getCurrentPos(), width, height);
-		if(!isIns && neitherIsPressed()){ return false; }
-			// If the right button was pressed above this, put one item down as soon as the mouse is outside:
-		else if(!isIns && buttonMethod(carried)) { return true; }
+		if(!isInside(mouse.getCurrentPos(), width, height) && neitherIsPressed())
+			return false;
+		// If the right button was pressed above this, put one item down as soon as the mouse is outside:
+		if(!isInside(mouse.getCurrentPos(), width, height) && buttonMethod(carried))
+			return true;
 
 		// Only do something when the button is released:
-		if(mouse.isLeftButtonPressed()) {
-			pressedLeft = true;
-			return false;
-		} else if(mouse.isRightButtonPressed()) {
-			pressedRight = true;
-			return false;
-		}
-		if(neitherIsPressed())
-			return false;
-		
+		if(buttonPressed(mouse)) return true;
+
 		if(takeOnly) {
 			pressedRight = pressedLeft = false;
 			// Take all items from this slot if possible, no matter what button is pressed:
-			if(carried.getItem() == null && reference.getItem() == null) return true;
 			if(carried.getItem() == null) {
+				if(reference.getItem() == null) return true;
 				carried.setItem(reference.getItem());
 			} else if(carried.getItem() != reference.getItem()) {
 				return false; // Cannot pick it up.
@@ -126,6 +123,10 @@ public class InventorySlot extends Component {
 		return true;
 	}
 
+	public boolean neitherIsPressed(){
+		return !pressedLeft && !pressedRight;
+	}
+
 	public boolean buttonMethod(ItemStack carried){
 		if(pressedRight && carried.getItem() != null) {
 			if(reference.getItem() == carried.getItem() && reference.add(1) != 0) {
@@ -141,9 +142,20 @@ public class InventorySlot extends Component {
 		return false;
 	}
 
-	public boolean neitherIsPressed(){
-		return !pressedLeft && !pressedRight;
+	public boolean buttonPressed(MouseInput mouse){
+		if(mouse.isLeftButtonPressed()) {
+			pressedLeft = true;
+			return false;
+		}
+		if(mouse.isRightButtonPressed()) {
+			pressedRight = true;
+			return false;
+		}
+		if(!neitherIsPressed())
+			return false;
+		return true;
 	}
+
 
 	@Override
 	public void render(long nvg, Window win, int x, int y) {
